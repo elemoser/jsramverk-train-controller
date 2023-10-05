@@ -2,7 +2,7 @@
   <div class="delayed">
     <h1>Försenade Tåg</h1>
     <div class="delayed-trains" v-if="delayedTrains">
-      <div v-for="trains in delayedTrains" :key="trains" @click="renderTicketView(trains)">
+      <div v-for="trains in delayedTrains" :key="trains" @click.self="renderTicketView(trains)">
         <div class="train-number">
           {{ trains.OperationalTrainNumber }}
         </div>
@@ -14,6 +14,7 @@
           <div v-else></div>
         </div>
         <div class="delay">{{ trains.delayInMin }} minuter</div>
+        <div><button style="color: red; padding: 0.6em;" @click="renderSingleMarker(trains.OperationalTrainNumber)">&#9906;</button></div>
       </div>
     </div>
     <div v-else>Loading...</div>
@@ -82,6 +83,9 @@ export default {
       // Save train in store, then change route.
       store.train = trainObject
       this.$router.push('/tickets')
+    },
+    renderSingleMarker(trainNumber) {
+      console.log(trainNumber)
     }
   }
 }
