@@ -9,6 +9,9 @@ import io from 'socket.io-client'
 const baseURL = import.meta.env.VITE_BASE_URL
 
 export default {
+  props: {
+    trainInfo: String
+  },
   data() {
     return {
       center: [62.173276, 14.942265]
@@ -48,6 +51,9 @@ export default {
   },
   mounted() {
     this.setupMap()
+  },
+  updated() {
+    console.log(this.trainInfo);
   }
   // beforeDestroy() {
   //     this.socket.disconnect();

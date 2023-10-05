@@ -14,7 +14,9 @@
           <div v-else></div>
         </div>
         <div class="delay">{{ trains.delayInMin }} minuter</div>
-        <div><button style="color: red; padding: 0.6em;" @click="renderSingleMarker(trains.OperationalTrainNumber)">&#9906;</button></div>
+        <div>
+          <button style="padding: 0.6em;" @click="renderSingleMarker(trains.OperationalTrainNumber)">&#9906;</button>
+        </div>
       </div>
     </div>
     <div v-else>Loading...</div>
@@ -63,6 +65,7 @@ export default {
         .then(data => {
           // Store received data in component variable
           this.delayedTrains = data.data.delayed
+          store.delays = this.delayedTrains
           const numberOfDelays = Object.entries(this.delayedTrains).length
           for (let i = 0; i < numberOfDelays; i++) {
             const date1 = new Date(this.delayedTrains[i].AdvertisedTimeAtLocation)
@@ -85,7 +88,8 @@ export default {
       this.$router.push('/tickets')
     },
     renderSingleMarker(trainNumber) {
-      console.log(trainNumber)
+      // console.log(trainNumber)
+      this.$emit('train-info', trainNumber)
     }
   }
 }
