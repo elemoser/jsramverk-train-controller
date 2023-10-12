@@ -55,8 +55,9 @@ export default {
           this.newCode = this.ticket.code
       }
       // This is to unlock a ticket if a person leaves the site before saving
-      // TODO it does not work as intended because it removes the "edit" mode all clients
-      window.addEventListener('beforeunload', this.unlockTicket);
+      if (this.editing) {
+        window.addEventListener('beforeunload', this.unlockTicket);
+      }
     },
     methods: {
       editTicket() {
