@@ -1,54 +1,75 @@
 <template>
-    <div v-if="this.editItem == ticket._id">
-    <form @submit.prevent="saveEdit" v-if="codes">
+  <div>
+    <div v-if="editing">
+      <form @submit.prevent="saveEdit" v-if="codes">
         <span>{{ ticket._id }} - </span>
         <select v-model="newCode">
-        <option v-for="code in codes" :key="code" :value="code.Code">
-            {{ code.Code }} - {{ code.Level3Description }}
-        </option>
+          <option v-for="code in codes" :key="code" :value="code.Code">
+              {{ code.Code }} - {{ code.Level3Description }}
+          </option>
         </select>
         <span> - {{ ticket.trainnumber }} - {{ ticket.traindate }}</span>
         <button type="submit">save</button>
-        <button @click="editItem = null">cancel</button>
-    </form>
+        <button @click="unlockTicket">cancel</button>
+      </form>
     </div>
     <div v-else>
-    <span>{{ ticket._id }} - {{ ticket.code }} - {{ ticket.trainnumber }} - {{ ticket.traindate }}</span>
-    <button @click="editTicket(ticket._id, ticket.code)">edit</button>
+      <span>{{ ticket._id }} - {{ ticket.code }} - {{ ticket.trainnumber }} - {{ ticket.traindate }}</span>
+      <button
+        v-if="!locked && !editing"
+        @click="editTicket"
+        >edit</button>
     </div>
+  </div>
 </template>
 
 <script>
-// import { io } from "socket.io-client"
-// const baseURL = import.meta.env.VITE_BASE_URL
+import { io } from "socket.io-client"
+const baseURL = import.meta.env.VITE_BASE_URL
 const graphqlURL = import.meta.env.VITE_GRAPHQL_URL
+const socket = io(baseURL)
 
 export default {
     props: [
       'ticket',
-      'fetchTickets'
+      'localEdit'
+    ],
+    emits: [
+      'lockTicket',
+      'updateTickets'
     ],
     data() {
       return {
-        editItem: null,
         currentCode: '',
         newCode: '',
-        codes: null
+        codes: null,
+        locked: this.ticket.locked,
+        editing: false
       }
     },
+    mounted() {
+      if (this.locked && this.localEdit.ticketId === this.ticket._id) {
+          this.codes = this.$store.codes
+          this.editing = true
+          this.currentCode = this.ticket.code
+          this.newCode = this.ticket.code
+      }
+      // This is to unlock a ticket if a person leaves the site before saving
+      // TODO it does not work as intended because it removes the "edit" mode all clients
+      window.addEventListener('beforeunload', this.unlockTicket);
+    },
     methods: {
-      editTicket(ticketId, ticketCode) {
-        // Function to edit the value for Code in the existing tickets
-        // Takes the ticket id and the current ticket code as argument
-        this.codes = this.$store.codes
-        this.editItem = ticketId
-        this.currentCode = ticketCode
-        this.newCode = ticketCode
+      editTicket() {
+        // If another tick
+        if (this.localEdit.ticketId !== this.ticket._id) {
+          socket.emit('unlock-ticket', this.localEdit.ticketId)
+          this.localEdit.ticketId = null
+        }
 
-        // const socket = io(`${baseURL}/`)
-        // socket.emit("edit", ticketId)
-        // // create unique room
-        // socket.emit("create", data[_id])
+        if (!this.locked) {
+          this.$emit('lockTicket', this.ticket._id)
+          socket.emit('lock-ticket', this.ticket._id)
+        }
       },
       // TODO Add functionality to delete a ticket
       saveEdit() {
@@ -56,9 +77,12 @@ export default {
         if (this.newCode != this.currentCode) {
           const mutationUpdateTicket = `mutation {
           updateTicket (
-            _id: "${this.editItem}",
+            _id: "${this.ticket._id}",
             code: "${this.newCode}"
-            ){_id}
+            ){
+              _id
+              code
+            }
           }`
 
           try {
@@ -77,16 +101,24 @@ export default {
               if (result.errors) {
                 window.alert(result.errors[0].message)
               }
-              this.fetchTickets()
+              socket.emit('update-tickets', result.data.updateTicket)
             })
           } catch (error) {
-            console.error('Error fetching data:', error);
+            console.error('Error fetching data:', error)
           }
         }
 
-        // reset variable
-          this.editItem = null
+        // reset ticket
+        this.unlockTicket()
+      },
+      unlockTicket() {
+        this.locked = false
+        this.localEdit.ticketId = null
+        socket.emit('unlock-ticket', this.ticket._id)
       }
     }
 }
 </script>
+
+<style scoped>
+</style>

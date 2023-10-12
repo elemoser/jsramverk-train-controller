@@ -54,7 +54,8 @@ const tickets = {
 
         if ( result.modifiedCount > 0 ) {
             return {
-                _id: args._id
+                _id: args._id,
+                code: args.code
             };
         }
     },

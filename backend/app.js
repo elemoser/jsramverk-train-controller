@@ -10,6 +10,8 @@ const { graphqlHTTP } = require('express-graphql');
 const schema = require('./graphql/index.js');
 const authModel = require('./models/auth.js'); // For authentication
 
+// Imports for sockets
+const socketTicketSetup = require('./sockets/index.js');
 const fetchTrainPositions = require('./models/trains.js');
 
 const port = process.env.PORT || 1337;
@@ -30,6 +32,7 @@ app.disable('x-powered-by');
 app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 
+// Sockets
 const io = require("socket.io")(httpServer, {
     cors: {
         origins: [
@@ -40,6 +43,9 @@ const io = require("socket.io")(httpServer, {
         methods: ["GET", "POST"]
     }
 });
+
+// Sockets for tickets
+socketTicketSetup(io);
 
 // GraphQL
 const visual = true;

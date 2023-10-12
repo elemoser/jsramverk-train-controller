@@ -3,7 +3,11 @@
     <h2>Befintliga ärenden</h2>
     <div v-if="this.oldTickets">
       <div v-for="ticket in this.oldTickets" :key="ticket">
-        <SingleTicket :ticket="ticket" :fetchTickets="fetchTickets"/>
+        <SingleTicket
+          :ticket="ticket"
+          :localEdit="localEdit"
+          @updateTickets="fetchTickets"
+          @lockTicket="lockTicket" />
       </div>
     </div>
   </div>
@@ -11,17 +15,9 @@
 
 <script>
 import SingleTicket from './SingleTicket.vue'
-
-const graphqlURL = import.meta.env.VITE_GRAPHQL_URL
-// Define data needed from backend
-const queryTickets = `{
-  tickets {
-    _id
-    code
-    trainnumber
-    traindate
-  }
-}`
+import io from 'socket.io-client'
+const baseURL = import.meta.env.VITE_BASE_URL
+const socket = io(baseURL)
 
 export default {
   components: {
@@ -29,31 +25,27 @@ export default {
   },
   data() {
     return {
-      oldTickets: []
+      oldTickets: [],
+      localEdit: {
+        ticketId: null
+      }
     }
   },
-  created() {
-    this.fetchTickets()
+  beforeCreate() {
+    socket.emit('request-tickets')
+
+    // Get the tickets when 'ticket' is emitted
+    socket.on('tickets', (data) => {
+      this.oldTickets = data
+    })
   },
   methods: {
-    fetchTickets() {
-      try {
-        // Fetch data via graphql
-        fetch(`${graphqlURL}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-        },
-        body: JSON.stringify({ query: queryTickets })
-        })
-        .then(response => response.json())
-        .then(data => {
-          this.oldTickets = data.data.tickets
-        })
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
+    fetchTickets(data) {
+      socket.emit('update-tickets', data)
+    },
+    lockTicket(id) {
+      // This is to set the id of ticked editing locally
+      this.localEdit.ticketId = id
     }
   }
 }
